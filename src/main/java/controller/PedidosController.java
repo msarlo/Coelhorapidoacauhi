@@ -18,13 +18,11 @@ public class PedidosController {
         this.entregaDAO = new EntregaDAO();
     }
     
-    public boolean cadastrarPedido(Usuario cliente, String origem, String destino, double distancia) {
+    public String cadastrarPedido(Usuario cliente, String origem, String destino, double distancia) {
         if (cliente == null || origem == null || destino == null || distancia <= 0) {
-            return false;
+            return null; // ou lançar uma exceção
         }
-        
-        // Seleciona tipo de veículo baseado na distância
-        // Valores exemplo: até 5km moto, até 20km carro, acima caminhão
+    
         double preco = calcularPreco(distancia);
         
         Entrega novoPedido = new Entrega(
@@ -37,8 +35,12 @@ public class PedidosController {
             preco,
             true // status ativo
         );
+    
+        if (entregaDAO.inserir(novoPedido)) {
+            return novoPedido.getId(); // Retorna o ID da nova entrega
+        }
         
-        return entregaDAO.inserir(novoPedido);
+        return null; // Se a inserção falhar
     }
     
     private double calcularPreco(double distancia) {
@@ -70,5 +72,9 @@ public class PedidosController {
     
     public ArrayList<Entrega> getPedidosAtivos() {
         return entregaDAO.getEntregasAtivas();
+    }
+
+    public ArrayList<Entrega> getPedidosDisponiveis() {
+        return entregaDAO.getPedidosDisponiveis(); // Implementação que retorna pedidos que não têm motorista atribuído
     }
 }

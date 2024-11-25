@@ -10,6 +10,7 @@ import banco.ConnectionFactory;
 import model.Entrega;
 
 public class EntregaDAO {
+    private static final String SELECT_DISPONIVEIS = "SELECT * FROM entrega WHERE idmotorista IS NULL AND status = 1"; 
     private static final String INSERT = "INSERT INTO entrega (id, idcliente, idmotorista, origem, destino, distancia, preco, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String UPDATE = "UPDATE entrega SET idcliente=?, idmotorista=?, origem=?, destino=?, distancia=?, preco=?, status=? WHERE id=?";
     private static final String DELETE = "DELETE FROM entrega WHERE id=?";
@@ -194,6 +195,32 @@ public class EntregaDAO {
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
+        return entregas;
+    }
+
+    public ArrayList<Entrega> getPedidosDisponiveis() {
+        ArrayList<Entrega> entregas = new ArrayList<>();
+       
+    
+        try (Connection conn = ConnectionFactory.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(this.SELECT_DISPONIVEIS);
+         ResultSet rs = stmt.executeQuery()) {
+        
+        while (rs.next()) {
+            entregas.add(new Entrega(
+                rs.getString("id"),
+                rs.getString("idcliente"),
+                rs.getString("idmotorista"),
+                rs.getString("origem"),
+                rs.getString("destino"),
+                rs.getDouble("distancia"),
+                rs.getDouble("preco"),
+                rs.getBoolean("status")
+            ));
+        }
+    } catch (SQLException | ClassNotFoundException e) {
+        e.printStackTrace();
+    }
         return entregas;
     }
 }

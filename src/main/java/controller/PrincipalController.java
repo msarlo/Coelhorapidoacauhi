@@ -62,9 +62,9 @@ public class PrincipalController {
     }
 
     // Funcionalidades Cliente
-    public boolean solicitarEntrega(String origem, String destino, double distancia) {
+    public String solicitarEntrega(String origem, String destino, double distancia) {
         if (usuarioLogado == null || usuarioLogado.getTipo() != TipoUsuario.cliente) {
-            return false;
+            return null;
         }
         return pedidoController.cadastrarPedido(usuarioLogado, origem, destino, distancia);
     }
@@ -125,5 +125,10 @@ public class PrincipalController {
 
     public void logout() {
         this.usuarioLogado = null;
+    }
+
+    public ArrayList<Entrega> getPedidosDisponiveis() {
+        // Aqui você deve implementar a lógica para buscar todos os pedidos que ainda não foram atribuídos a um motorista
+        return pedidoController.getPedidosDisponiveis(); // Certifique-se de que este método existe no seu PedidosController
     }
 }
