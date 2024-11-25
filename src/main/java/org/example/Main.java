@@ -1,9 +1,9 @@
 package org.example;
 
-import view.ViewPrincipal;
+import view.TelaPrincipal;
 
 public class Main {
     public static void main(String[] args) {
-        new ViewPrincipal().setVisible(true);
+        new TelaPrincipal().setVisible(true);
     }
 }

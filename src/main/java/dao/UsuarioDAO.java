@@ -1,169 +1,143 @@
 package dao;
 
-import banco.ConnectionFactory;
-import model.Usuario;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
+import banco.ConnectionFactory;
+import model.Usuario;
+import model.Usuario.TipoUsuario;
+
 public class UsuarioDAO {
+    private static final String INSERT = "INSERT INTO usuario (id, nome, email, senha, telefone, tipo, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    private static final String UPDATE = "UPDATE usuario SET nome=?, email=?, senha=?, telefone=?, tipo=?, status=? WHERE id=?";
+    private static final String DELETE = "DELETE FROM usuario WHERE id=?";
+    private static final String SELECT_BY_ID = "SELECT * FROM usuario WHERE id=?";
+    private static final String SELECT_ALL = "SELECT * FROM usuario";
+    private static final String SELECT_BY_EMAIL = "SELECT * FROM usuario WHERE email=?";
+
     public boolean inserir(Usuario obj) {
-        String sql = "INSERT INTO usuario (nome, email, senha, telefone, tipo) VALUES (?, ?, ?, ?, ?)";
-         try(Connection conn = ConnectionFactory.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            // Configura os parâmetros do SQL
-            stmt.setString(1, obj.getNome());
-            stmt.setString(2, obj.getEmail());
-            stmt.setString(3, obj.getSenha());
-            stmt.setString(4, obj.getTelefone());
-            stmt.setString(5, obj.getTipo());
-            // Executa o comando SQL
-            return stmt.executeUpdate() > 0; // Retorna true se o cadastro for bem-sucedido
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(INSERT)) {
+            
+            stmt.setString(1, obj.getId());
+            stmt.setString(2, obj.getNome());
+            stmt.setString(3, obj.getEmail());
+            stmt.setString(4, obj.getSenha());
+            stmt.setString(5, obj.getTelefone());
+            stmt.setString(6, obj.getTipo().toString());
+            stmt.setBoolean(7, obj.isStatus());
+            
+            return stmt.executeUpdate() > 0;
         } catch (SQLException | ClassNotFoundException e) {
-            e.printStackTrace(); // Mostra o erro no console
+            e.printStackTrace();
+            return false;
         }
-        return false; // Retorna false se o cadastro falhar
     }
 
-
-    public boolean editar(Usuario obj) {
-        String sql = "UPDATE usuario SET nome = ?, email = ?, senha = ?, telefone = ? WHERE id = ?";
-
+    public Usuario getByEmail(String email) {
         try (Connection conn = ConnectionFactory.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            // Configura os parâmetros do SQL com os valores do objeto Usuario
-            stmt.setString(1, obj.getNome());
-            stmt.setString(2, obj.getEmail());
-            stmt.setString(3, obj.getSenha());
-            stmt.setString(4, obj.getTelefone());
-            stmt.setString(5, obj.getId());
-
-            // Executa o comando SQL
-            return stmt.executeUpdate() > 0; // Retorna true se pelo menos um registro foi atualizado
-        } catch (SQLException | ClassNotFoundException e) {
-            e.printStackTrace(); // Mostra o erro no console
-        }
-
-        return false; // Retorna false se a edição falhar
-    }
-
-
-
-    public boolean apagar(String email) {
-
-        String sql = "DELETE FROM usuario WHERE email = ?";
-        try (Connection conn = ConnectionFactory.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-
+             PreparedStatement stmt = conn.prepareStatement(SELECT_BY_EMAIL)) {
+            
             stmt.setString(1, email);
-
-            // Executa o comando SQL
-            return stmt.executeUpdate() > 0; // Retorna true se um registro foi excluído
-        } catch (SQLException | ClassNotFoundException e) {
-            e.printStackTrace(); // Mostra o erro no console
-        }
-        return false; // Retorna false se a exclusão falhar
-    }
-
-    public Usuario getById(String key) {
-        String sql = "SELECT * FROM usuario WHERE id = ?";
-        Usuario usuario = null;
-
-        try (Connection conn = ConnectionFactory.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            // Configura o parâmetro do SQL
-            stmt.setInt(1, Integer.parseInt(key));
-
-            // Executa a consulta
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    usuario = new Usuario();
-                    usuario.setId(rs.getString("id"));
-                    usuario.setNome(rs.getString("nome"));
-                    usuario.setEmail(rs.getString("email"));
-                    usuario.setSenha(rs.getString("senha"));
-                    usuario.setTelefone(rs.getString("telefone"));
-                }
-            }
-        } catch (SQLException | ClassNotFoundException e) {
-            e.printStackTrace(); // Mostra o erro no console
-        }
-
-        return usuario; // Retorna o usuario ou null se não for encontrado
-    }
-
-    public ArrayList<Usuario> getAll() {
-        String sql = "SELECT * FROM usuario";
-        ArrayList<Usuario> listaUsuarios = new ArrayList<>();
-
-        try (Connection conn = ConnectionFactory.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-
-            // Processa os resultados da consulta
-            while (rs.next()) {
-                Usuario usuario = new Usuario();
-                usuario.setId(rs.getString("id"));
-                usuario.setNome(rs.getString("nome"));
-                usuario.setEmail(rs.getString("email"));
-                usuario.setSenha(rs.getString("senha"));
-                usuario.setTelefone(rs.getString("telefone"));
-
-                listaUsuarios.add(usuario);
-            }
-        } catch (SQLException | ClassNotFoundException e) {
-            e.printStackTrace(); // Mostra o erro no console
-        }
-
-        return listaUsuarios;
-    }
-
-    public int quantidade() {
-        String sql = "SELECT COUNT(*) AS total FROM usuario";
-        int total = 0;
-
-        try (Connection conn = ConnectionFactory.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-
-
+            ResultSet rs = stmt.executeQuery();
+            
             if (rs.next()) {
-                total = rs.getInt("total");
+                return new Usuario(
+                    rs.getString("id"),
+                    rs.getString("nome"),
+                    rs.getString("email"),
+                    rs.getString("senha"),
+                    rs.getString("telefone"),
+                    TipoUsuario.valueOf(rs.getString("tipo")),
+                    rs.getBoolean("status")
+                );
             }
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-
-        return total;
+        return null;
     }
 
-
-    public String login(String email, String senha) {
-        String usuarioId = null;
-        String sql = "SELECT id FROM usuario WHERE email = ? AND senha = ?"; // Ajuste a tabela e os campos conforme necessário
-
-        try (Connection conn = ConnectionFactory.getConnection(); // Supondo que você tenha uma classe para gerenciar a conexão
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, email);
-            stmt.setString(2, senha);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                usuarioId = String.valueOf(rs.getInt("id")); // Captura o ID do usuário
-            }
-        } catch (Exception e) {
-            e.printStackTrace(); // Trate a exceção conforme necessário
+    public boolean editar(Usuario obj) {
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(UPDATE)) {
+            
+            stmt.setString(1, obj.getNome());
+            stmt.setString(2, obj.getEmail());
+            stmt.setString(3, obj.getSenha());
+            stmt.setString(4, obj.getTelefone());
+            stmt.setString(5, obj.getTipo().toString());
+            stmt.setBoolean(6, obj.isStatus());
+            stmt.setString(7, obj.getId());
+            
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return false;
         }
+    }
 
-        return usuarioId; // Retorna o ID ou null
+    public Usuario getById(String id) {
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(SELECT_BY_ID)) {
+            
+            stmt.setString(1, id);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return new Usuario(
+                    rs.getString("id"),
+                    rs.getString("nome"),
+                    rs.getString("email"),
+                    rs.getString("senha"),
+                    rs.getString("telefone"),
+                    TipoUsuario.valueOf(rs.getString("tipo")),
+                    rs.getBoolean("status")
+                );
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public boolean deletar(String id) {
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(DELETE)) {
+            
+            stmt.setString(1, id);
+            return stmt.executeUpdate() > 0;
+            
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public ArrayList<Usuario> getAll() {
+        ArrayList<Usuario> usuarios = new ArrayList<>();
+        
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(SELECT_ALL);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            while (rs.next()) {
+                usuarios.add(new Usuario(
+                    rs.getString("id"),
+                    rs.getString("nome"),
+                    rs.getString("email"),
+                    rs.getString("senha"),
+                    rs.getString("telefone"),
+                    TipoUsuario.valueOf(rs.getString("tipo")),
+                    rs.getBoolean("status")
+                ));
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return usuarios;
     }
 }
-
